@@ -1,58 +1,115 @@
-import org.json.*;
-
-import java.io.*;
 import java.util.*;
 
+// zawiera dane, na temat danego wzorca, zawartego w wyrażeniu wzorcowym
 public class WorkflowPattern {
-    private String name;
-    private int numberOfArguments;
-    private List<String> rules;
+    private WorkflowPatternTemplate workflowPatternTemplate;
+    private List<String> patternArguments;
 
-    public WorkflowPattern(String name, int numberOfArguments, List<String> rules) {
-        this.name = name;
-        this.numberOfArguments = numberOfArguments;
-        this.rules = rules;
+    public WorkflowPattern(WorkflowPatternTemplate workflowPatternTemplate, List<String> patternArguments) {
+        this.workflowPatternTemplate = workflowPatternTemplate;
+        this.patternArguments = patternArguments;
     }
 
-    public String getName() {
-        return name;
+    public WorkflowPatternTemplate getWorkflowPatternTemplate() {
+        return workflowPatternTemplate;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setWorkflowPatternTemplate(WorkflowPatternTemplate workflowPatternTemplate) {
+        this.workflowPatternTemplate = workflowPatternTemplate;
     }
 
-    public int getNumberOfArguments() {
-        return numberOfArguments;
-    }
-
-    public void setNumberOfArguments(int numberOfArguments) {
-        this.numberOfArguments = numberOfArguments;
-    }
-
-    public List<String> getRules() {
-        return rules;
-    }
-
-    public void setRules(List<String> rules) {
-        this.rules = rules;
-    }
-
-    public static List<WorkflowPattern> loadWorkflowPatterns(String pathToPatternRulesFile) throws FileNotFoundException {
-        FileInputStream fileInputStream = new FileInputStream(pathToPatternRulesFile);
-        JSONTokener jsonTokener = new JSONTokener(fileInputStream);
-        JSONObject jsonObject = new JSONObject(jsonTokener);
-        List<WorkflowPattern> workflowPatternList = new ArrayList<>();
-        for (String workflowPatternName: jsonObject.keySet()) {
-            JSONObject patternDescrJSONObject = (JSONObject)jsonObject.get(workflowPatternName);
-            int numberOfArguments = (int) patternDescrJSONObject.get("number of args");
-            JSONArray rules = (JSONArray) patternDescrJSONObject.get("rules");
-            List<String> rulesList = new ArrayList<>();
-            for (var rule: rules.toList()) {
-                rulesList.add((String) rule);
+    // zwraca zasady z pliku wsadowego, ale z podmienionymi atomicznymi aktywnościami na zawarte w wyrażeniu wzorcowym
+    //
+    // np.:
+    //  w pliku wsadowym:
+    //      ["arg0", "arg1 | arg2", "Exist(arg0)", "ForAll(arg0 => Exist(arg1) ^ Exist(arg2))", "ForAll(~(arg0 ^ arg1))", "ForAll(~(arg0 ^ arg2))"]
+    //
+    // funkcja zwraca:
+    //      [b, c | d, Exist(b), ForAll(b => Exist(c) ^ Exist(d)), ForAll(~(b ^ c)), ForAll(~(b ^ d))]
+    //
+    public List<String> getPatternArguments() throws Exception {
+        if (patternArguments.size() > 0) {
+            List<String> outcomes = new ArrayList<>();
+            for (String outcome : workflowPatternTemplate.getRules()) {
+                String outcomeWithParams = outcome;
+                for (int i = 0; i < patternArguments.size(); i++) {
+                    outcomeWithParams = outcomeWithParams.replace("arg" + i, patternArguments.get(i));
+                }
+                outcomes.add(outcomeWithParams);
             }
-            WorkflowPattern workflowPattern = new WorkflowPattern(workflowPatternName, numberOfArguments, rulesList);
-            workflowPatternList.add(workflowPattern);
+            return outcomes;
+        } else {
+            throw new Exception("Nie ma argumentów dla danego wzoca w wyrażeniu");
         }
-        return workflowPatternList;
-    }}
+    }
+
+    public void setPatternArguments(List<String> patternArguments) {
+        this.patternArguments = patternArguments;
+    }
+
+    public static WorkflowPattern getWorkflowPatternFromExpression(String patternExpression, List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
+
+        // pobiera nazwę głównego wzorca z wyrażenia; np. z "Seq(a,b)" wyciąga "Seq"
+        String workflowName = patternExpression.substring(0, patternExpression.indexOf("("));
+
+        // tworzy nowy obiekt WorkflowPattern (na podstawie WorkflowPatternTemplate i argumentów w patternExpression)
+        WorkflowPatternTemplate workflowPatternTemplate = patternPropertySet.stream().filter(x -> x.getName().equals(workflowName)).findFirst().orElseThrow();
+        List<String> patternArguments = extractArgumentsFromLabelledExpression(patternExpression, patternPropertySet);
+        return new WorkflowPattern(workflowPatternTemplate, patternArguments);
+    }
+
+    //
+    public static List<String> extractArgumentsFromLabelledExpression(String labelledExpression, List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
+
+        // pobiera liczbę argumentów odpowiednią dla danego wzorca
+        String workflowName = labelledExpression.substring(0, labelledExpression.indexOf("("));
+        WorkflowPatternTemplate workflowPatternTemplate = patternPropertySet.stream().filter(x -> x.getName().equals(workflowName)).findFirst().orElseThrow();
+        int numberOfArguments = workflowPatternTemplate.getNumberOfArguments();
+
+        // pobiera numer etykiety wzorca w przekazanym wyrażeniu
+        int patternLabelNumber = Integer.parseInt(String.valueOf(labelledExpression.charAt(labelledExpression.length() - 2)));
+
+        // skraca wyrażenia wg zasady: "Seq(2]Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)[2)" --> "Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)"
+        String trimmedLabelledExpression = labelledExpression.substring(labelledExpression.indexOf("]") + 1, labelledExpression.length() - 3);
+
+        // znajduje argumenty danego wzorca
+        String[] split = trimmedLabelledExpression.split(",");
+        List<String> arguments = new ArrayList<>();
+        int bracketsCounter = 0;
+        StringBuilder tempArg = new StringBuilder();
+        for (String s : split) {
+            bracketsCounter += countOccurrenceOfChar(s, '(');
+            bracketsCounter -= countOccurrenceOfChar(s, ')');
+            tempArg.append(s);
+            tempArg.append(",");
+            if (bracketsCounter == 0) {
+                tempArg.deleteCharAt(tempArg.length() - 1);
+                arguments.add(tempArg.toString());
+                tempArg = new StringBuilder();
+            }
+        }
+
+        // sprawdza czy znaleziono odpowiednią liczbę argumentów
+        if (arguments.size() != numberOfArguments)
+            throw new Exception("Znaleziono liczbę argumentów (" + arguments + ")różną od wymaganej(" + numberOfArguments + ")");
+
+        return arguments;
+
+        // w poprzedniej implementacji wyszukiwanie argumentów odbywało się za pomocą:
+        // return extractArgumentsFromFunction(labelledExpression.substring(labelledExpression.indexOf("]") + 1, labelledExpression.length() - 3));
+    }
+
+    private static int countOccurrenceOfChar(String string, char c) {
+        int count = 0;
+        for (int i = 0; i < string.length(); i++) {
+            if (string.charAt(i) == c) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public static boolean isAtomic(String argument) {
+        return !(argument.contains("=>") || argument.contains("|") || argument.contains("^") || argument.contains("]"));
+    }
+}

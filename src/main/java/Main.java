@@ -1,14 +1,13 @@
-import java.io.*;
 import java.util.*;
 
 public class Main {
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws Exception {
 
-        // Loading of workflow patterns from batch files
+        // Loading of Pattern property set from batch files
         String patternRulesFolFile = "./pattern_rules/pattern_rules_FOL.json";
         String patternRulesLtlFile = "./pattern_rules/pattern_rules_LTL.json";
-        List<WorkflowPattern> folWorkflowPatterns = WorkflowPattern.loadWorkflowPatterns(patternRulesFolFile);
-        List<WorkflowPattern> ltlWorkflowPatterns = WorkflowPattern.loadWorkflowPatterns(patternRulesLtlFile);
+        List<WorkflowPatternTemplate> folPatternPropertySet = WorkflowPatternTemplate.loadPatternPropertySet(patternRulesFolFile);
+        List<WorkflowPatternTemplate> ltlPatternPropertySet = WorkflowPatternTemplate.loadPatternPropertySet(patternRulesLtlFile);
 
         // Algorithm 1 - Labelling pattern expressions
         String exampleExpression1 = "Seq(a, Seq(Concur(b,c,d), ConcurRe(e,f,g)))";
@@ -17,5 +16,11 @@ public class Main {
         String labelledPatternExpression2 = LabellingPatternExpressions.labelExpressions(exampleExpression2);
         System.out.println(labelledPatternExpression1);
         System.out.println(labelledPatternExpression2);
+
+        // Algorithm 2 - Calculating consolidated expression
+        String ini = CalculatingConsolidatedExpression.generateConsolidatedExpression(labelledPatternExpression1.replace(" ", ""), "ini", folPatternPropertySet);
+        System.out.println("ini: " + ini);
+        String fin = CalculatingConsolidatedExpression.generateConsolidatedExpression(labelledPatternExpression1.replace(" ", ""), "fin", folPatternPropertySet);
+        System.out.println("fin: " + fin);
     }
 }
