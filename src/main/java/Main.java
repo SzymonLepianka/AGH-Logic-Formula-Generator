@@ -22,5 +22,10 @@ public class Main {
         System.out.println("ini: " + ini);
         String fin = CalculatingConsolidatedExpression.generateConsolidatedExpression(labelledPatternExpression1.replace(" ", ""), "fin", folPatternPropertySet);
         System.out.println("fin: " + fin);
+
+        // Algorithm 3 - Generating logical specifications
+        String s = GeneratingLogicalSpecifications.generateLogicalSpecifications(exampleExpression1.replace(" ", ""), folPatternPropertySet);
+        System.out.println("Xd");
+        System.out.println(s);
     }
 }

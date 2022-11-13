@@ -43,6 +43,10 @@ public class WorkflowPattern {
         }
     }
 
+    public List<String> getPatternArguments2() throws Exception {
+        return patternArguments;
+    }
+
     public void setPatternArguments(List<String> patternArguments) {
         this.patternArguments = patternArguments;
     }
