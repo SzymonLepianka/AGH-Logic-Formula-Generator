@@ -1,5 +1,3 @@
-import java.util.*;
-
 public class LabellingPatternExpressions {
 
     // Algorithm 1 - Labelling pattern expressions

@@ -15,6 +15,25 @@ public class WorkflowPatternTemplate {
         this.rules = rules;
     }
 
+    public static List<WorkflowPatternTemplate> loadPatternPropertySet(String pathToPatternRulesFile) throws FileNotFoundException {
+        FileInputStream fileInputStream = new FileInputStream(pathToPatternRulesFile);
+        JSONTokener jsonTokener = new JSONTokener(fileInputStream);
+        JSONObject jsonObject = new JSONObject(jsonTokener);
+        List<WorkflowPatternTemplate> patternPropertySet = new ArrayList<>();
+        for (String workflowPatternTemplateName : jsonObject.keySet()) {
+            JSONObject patternDescrJSONObject = (JSONObject) jsonObject.get(workflowPatternTemplateName);
+            int numberOfArguments = (int) patternDescrJSONObject.get("number of args");
+            JSONArray rules = (JSONArray) patternDescrJSONObject.get("rules");
+            List<String> rulesList = new ArrayList<>();
+            for (var rule : rules.toList()) {
+                rulesList.add((String) rule);
+            }
+            WorkflowPatternTemplate workflowPatternTemplate = new WorkflowPatternTemplate(workflowPatternTemplateName, numberOfArguments, rulesList);
+            patternPropertySet.add(workflowPatternTemplate);
+        }
+        return patternPropertySet;
+    }
+
     public String getName() {
         return name;
     }
@@ -37,24 +56,5 @@ public class WorkflowPatternTemplate {
 
     public void setRules(List<String> rules) {
         this.rules = rules;
-    }
-
-    public static List<WorkflowPatternTemplate> loadPatternPropertySet(String pathToPatternRulesFile) throws FileNotFoundException {
-        FileInputStream fileInputStream = new FileInputStream(pathToPatternRulesFile);
-        JSONTokener jsonTokener = new JSONTokener(fileInputStream);
-        JSONObject jsonObject = new JSONObject(jsonTokener);
-        List<WorkflowPatternTemplate> patternPropertySet = new ArrayList<>();
-        for (String workflowPatternTemplateName : jsonObject.keySet()) {
-            JSONObject patternDescrJSONObject = (JSONObject) jsonObject.get(workflowPatternTemplateName);
-            int numberOfArguments = (int) patternDescrJSONObject.get("number of args");
-            JSONArray rules = (JSONArray) patternDescrJSONObject.get("rules");
-            List<String> rulesList = new ArrayList<>();
-            for (var rule : rules.toList()) {
-                rulesList.add((String) rule);
-            }
-            WorkflowPatternTemplate workflowPatternTemplate = new WorkflowPatternTemplate(workflowPatternTemplateName, numberOfArguments, rulesList);
-            patternPropertySet.add(workflowPatternTemplate);
-        }
-        return patternPropertySet;
     }
 }

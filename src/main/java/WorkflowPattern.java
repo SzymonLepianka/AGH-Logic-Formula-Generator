@@ -10,49 +10,6 @@ public class WorkflowPattern {
         this.patternArguments = patternArguments;
     }
 
-    public WorkflowPatternTemplate getWorkflowPatternTemplate() {
-        return workflowPatternTemplate;
-    }
-
-    public void setWorkflowPatternTemplate(WorkflowPatternTemplate workflowPatternTemplate) {
-        this.workflowPatternTemplate = workflowPatternTemplate;
-    }
-
-    // zwraca zasady z pliku wsadowego, ale z podmienionymi atomicznymi aktywnościami na zawarte w wyrażeniu wzorcowym
-    //
-    // np.:
-    //  w pliku wsadowym:
-    //      ["arg0", "arg1 | arg2", "Exist(arg0)", "ForAll(arg0 => Exist(arg1) ^ Exist(arg2))", "ForAll(~(arg0 ^ arg1))", "ForAll(~(arg0 ^ arg2))"]
-    //
-    // funkcja zwraca:
-    //      [b, c | d, Exist(b), ForAll(b => Exist(c) ^ Exist(d)), ForAll(~(b ^ c)), ForAll(~(b ^ d))]
-    //
-    public List<String> getWorkflowPatternFilledRules() throws Exception {
-        if (patternArguments.size() > 0) {
-            List<String> outcomes = new ArrayList<>();
-            for (String outcome : workflowPatternTemplate.getRules()) {
-                String outcomeWithParams = outcome;
-                for (int i = 0; i < patternArguments.size(); i++) {
-                    outcomeWithParams = outcomeWithParams.replace("arg" + i, patternArguments.get(i));
-                }
-                outcomes.add(outcomeWithParams);
-            }
-            return outcomes;
-        } else {
-            throw new Exception("Nie ma argumentów dla danego wzoca w wyrażeniu");
-        }
-    }
-
-    // zwraca argumenty danego wzorca, np.:
-    //      dla Seq(1]a, Seq(2]Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)[2)[1) zwraca [a, Seq(2]Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)[2)]
-    public List<String> getPatternArguments() {
-        return patternArguments;
-    }
-
-    public void setPatternArguments(List<String> patternArguments) {
-        this.patternArguments = patternArguments;
-    }
-
     public static WorkflowPattern getWorkflowPatternFromExpression(String patternExpression, List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
 
         // pobiera nazwę głównego wzorca z wyrażenia; np. z "Seq(a,b)" wyciąga "Seq"
@@ -117,5 +74,48 @@ public class WorkflowPattern {
 
     public static boolean isNotAtomic(String argument) {
         return argument.contains("=>") || argument.contains("|") || argument.contains("^") || argument.contains("]");
+    }
+
+    public WorkflowPatternTemplate getWorkflowPatternTemplate() {
+        return workflowPatternTemplate;
+    }
+
+    public void setWorkflowPatternTemplate(WorkflowPatternTemplate workflowPatternTemplate) {
+        this.workflowPatternTemplate = workflowPatternTemplate;
+    }
+
+    // zwraca zasady z pliku wsadowego, ale z podmienionymi atomicznymi aktywnościami na zawarte w wyrażeniu wzorcowym
+    //
+    // np.:
+    //  w pliku wsadowym:
+    //      ["arg0", "arg1 | arg2", "Exist(arg0)", "ForAll(arg0 => Exist(arg1) ^ Exist(arg2))", "ForAll(~(arg0 ^ arg1))", "ForAll(~(arg0 ^ arg2))"]
+    //
+    // funkcja zwraca:
+    //      [b, c | d, Exist(b), ForAll(b => Exist(c) ^ Exist(d)), ForAll(~(b ^ c)), ForAll(~(b ^ d))]
+    //
+    public List<String> getWorkflowPatternFilledRules() throws Exception {
+        if (patternArguments.size() > 0) {
+            List<String> outcomes = new ArrayList<>();
+            for (String outcome : workflowPatternTemplate.getRules()) {
+                String outcomeWithParams = outcome;
+                for (int i = 0; i < patternArguments.size(); i++) {
+                    outcomeWithParams = outcomeWithParams.replace("arg" + i, patternArguments.get(i));
+                }
+                outcomes.add(outcomeWithParams);
+            }
+            return outcomes;
+        } else {
+            throw new Exception("Nie ma argumentów dla danego wzoca w wyrażeniu");
+        }
+    }
+
+    // zwraca argumenty danego wzorca, np.:
+    //      dla Seq(1]a, Seq(2]Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)[2)[1) zwraca [a, Seq(2]Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)[2)]
+    public List<String> getPatternArguments() {
+        return patternArguments;
+    }
+
+    public void setPatternArguments(List<String> patternArguments) {
+        this.patternArguments = patternArguments;
     }
 }
