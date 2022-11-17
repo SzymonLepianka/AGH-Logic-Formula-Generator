@@ -27,7 +27,7 @@ public class WorkflowPattern {
     // funkcja zwraca:
     //      [b, c | d, Exist(b), ForAll(b => Exist(c) ^ Exist(d)), ForAll(~(b ^ c)), ForAll(~(b ^ d))]
     //
-    public List<String> getPatternArguments() throws Exception {
+    public List<String> getWorkflowPatternFilledRules() throws Exception {
         if (patternArguments.size() > 0) {
             List<String> outcomes = new ArrayList<>();
             for (String outcome : workflowPatternTemplate.getRules()) {
@@ -43,7 +43,9 @@ public class WorkflowPattern {
         }
     }
 
-    public List<String> getPatternArguments2() throws Exception {
+    // zwraca argumenty danego wzorca, np.:
+    //      dla Seq(1]a, Seq(2]Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)[2)[1) zwraca [a, Seq(2]Concur(3]b,c,d[3),ConcurRe(3]e,f,g[3)[2)]
+    public List<String> getPatternArguments() {
         return patternArguments;
     }
 
@@ -113,7 +115,7 @@ public class WorkflowPattern {
         return count;
     }
 
-    public static boolean isAtomic(String argument) {
-        return !(argument.contains("=>") || argument.contains("|") || argument.contains("^") || argument.contains("]"));
+    public static boolean isNotAtomic(String argument) {
+        return argument.contains("=>") || argument.contains("|") || argument.contains("^") || argument.contains("]");
     }
 }

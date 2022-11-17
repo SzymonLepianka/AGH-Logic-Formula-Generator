@@ -9,7 +9,6 @@ public class GeneratingLogicalSpecifications {
     // Input:   - pattern expression w, ex. Seq(a, Seq(Concur(b, c, d), Concur Re(e, f, g)))
     //          - predefined pattern property set Σ (non-empty)
     // Output: logical specification L
-    //                          ex.
     //
     public static String generateLogicalSpecifications(String patternExpression, List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
         List<String> logicalSpecification = new ArrayList<>();
@@ -18,16 +17,15 @@ public class GeneratingLogicalSpecifications {
         for (int l = highestLabelNumber; l > 0; l--) {
             int c = 1;
             WorkflowPattern pat = getPat(labelledExpression, l, c, patternPropertySet);
-//            System.out.println(pat.getWorkflowPatternTemplate().getName());
-            do {
-                List<String> L2 = pat.getPatternArguments();
+            while (pat != null) {
+                List<String> L2 = pat.getWorkflowPatternFilledRules();
                 L2.remove(0);
                 L2.remove(0);
-                for (String arg : pat.getPatternArguments2()) {
-                    if (!WorkflowPattern.isAtomic(arg)) {
+                for (String arg : pat.getPatternArguments()) {
+                    if (WorkflowPattern.isNotAtomic(arg)) {
                         String cons = CalculatingConsolidatedExpression.generateConsolidatedExpression(arg, "ini", patternPropertySet) + " | " + CalculatingConsolidatedExpression.generateConsolidatedExpression(arg, "fin", patternPropertySet);
 
-                        List<String> L2_cons = new LinkedList<String>();
+                        List<String> L2_cons = new LinkedList<>();
                         for (String outcome : L2) {
                             L2_cons.add(outcome.replace(arg, cons));
                         }
@@ -37,8 +35,7 @@ public class GeneratingLogicalSpecifications {
                 c++;
                 logicalSpecification.addAll(L2);
                 pat = getPat(labelledExpression, l, c, patternPropertySet);
-            } while (pat != null);
-
+            }
         }
 
         Set<String> set = new HashSet<>(logicalSpecification);
@@ -54,91 +51,65 @@ public class GeneratingLogicalSpecifications {
 
     }
 
+    // input: np. "Seq(1]a, Seq(2]Concur(3]b,c,d[3), ConcurRe(3]e,f,g[3)[2)[1)"
+    //
+    // Wykonywana jest pętla po każdym znaku wyrażenia. Jeśli znak to '(' rozpoczyna się sczytywanie następnych znaków,
+    // aż do natrafienia na znak ']'.
+    // Zwracana jest największa wartość między '(' oraz ']', np. "(124]"
     private static int getHighestLabel(String labelledExpression) {
-        // TODO improve
-        labelledExpression = labelledExpression.replaceAll("[^0-9]+", " ");
-        List<String> labels = Arrays.asList(labelledExpression.trim().split(" "));
         int maxLabel = -1;
-        for (String label : labels) {
-            int castedLabel = Integer.valueOf(label);
-            maxLabel = Math.max(castedLabel, maxLabel);
+        boolean active = false;
+        StringBuilder sb = new StringBuilder();
+        for (char c : labelledExpression.toCharArray()) {
+            if (c == '(') {
+                active = true;
+            } else if (c == ']') {
+                if (Integer.parseInt(sb.toString()) > maxLabel) {
+                    maxLabel = Integer.parseInt(sb.toString());
+                }
+                sb = new StringBuilder();
+                active = false;
+            } else if (active) {
+                sb.append(c);
+            }
         }
         return maxLabel;
     }
 
+    // Funkcja getPat() zwraca wzór zawarty w przekazanym wyrażeniu, z etykietą numer 'l' na c-tej pozycji od lewej,
+    // a także usuwa wprowadzone etykiety.
+    //
+    // Na przykład dla Formuły "Seq(1]a, Seq(2]Concur(3]b,c,d[3), ConcurRe(3]e,f,g[3)[2)[1)" funkcja zwróci:
+    //      Concur Re(e,f,g).
     private static WorkflowPattern getPat(String labelledExpression, int l, int c, List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
-        System.out.println("l: "+l);
-        System.out.println("c: "+c);
+
+        // sprawdzenie poprawności wyrażenia
         int entryOccurrences = StringUtils.countMatches(labelledExpression, "(" + l + "]");
         int endOccurrences = StringUtils.countMatches(labelledExpression, "[" + l + ")");
         if (entryOccurrences != endOccurrences) throw new Exception("(" + l + "] nie równa się [" + l + ")");
-//        if (entryOccurrences < c) throw new Exception("Wystąpień ("+entryOccurrences+") jest mniej niż ("+c+")");
+
+        // jeżeli wprowadzono liczbę c większą niż wystąpienia danej etykiety w wyrażeniu to funkcja zwraca null
         if (entryOccurrences < c) return null;
-        String[] split = labelledExpression.split("\\(" + l + "]");
-//        System.out.println("split:");
-//        System.out.println(Arrays.stream(split).toList());
-        String[] split1 = split[c].split("\\[" + l + "\\)");
-//        System.out.println("split1:");
-//        System.out.println(Arrays.stream(split1).toList());
-        String[] split2 = split[c - 1].split("]");
-//        System.out.println("split2:");
-//        System.out.println(Arrays.stream(split2).toList());
-        String[] split3 = split2[split2.length - 1].split(",");
-//        System.out.println("split3:");
-//        System.out.println(Arrays.stream(split3).toList());
-        String workflowName = split3[split3.length - 1];
 
-        String workflowExp = workflowName + "("+ l + "]" +  split1[0] +"[" +l+")";
-        System.out.println(workflowExp);
+        // dzielenie wyrażenia wg "(l]", np.:
+        //      "Seq(1]a, Seq(2]Concur(3]b,c,d[3), ConcurRe(3]e,f,g[3)[2)[1)" ---> "[Seq(1]a,Seq(2]Concur, b,c,d[3),ConcurRe, e,f,g[3)[2)[1)]"
+        String[] expressionSplitByEntry = labelledExpression.split("\\(" + l + "]");
 
+        // wyciągnięcie zawartości pożądanego wzorca, tj.:
+        //      jeśli wzorzec to: "ConcurRe(e,f,g)" to tu uzyskiwane jest "e,f,g"
+        String patternContent = expressionSplitByEntry[c].split("\\[" + l + "\\)")[0];
+
+        // wyciągnięcie nazwy wzorca, tj.:
+        //      jeśli wzorzec to: "ConcurRe(e,f,g)" to tu uzyskiwane jest "ConcurRe"
+        // Nazwa wzorca może znajdować się przez znakiem ']' lub ','
+        String[] splitByBracket = expressionSplitByEntry[c - 1].split("]");
+        String[] splitByComma = splitByBracket[splitByBracket.length - 1].split(",");
+        String workflowName = splitByComma[splitByComma.length - 1];
+
+        // sklejenie całego wzorca w jeden string, np.: "ConcurRe(3]e,f,g[3)"
+        String workflowExp = workflowName + "(" + l + "]" + patternContent + "[" + l + ")";
+
+        // zwraca obiekt wzorca
         return WorkflowPattern.getWorkflowPatternFromExpression(workflowExp, patternPropertySet);
-
-
-//        int occurenceIndex = 0;
-//        do {
-//            if (occurenceIndex == 0)
-//                occurenceIndex = labeledExpression.indexOf(l + "]", occurenceIndex);
-//            else {
-//                int oldOccurenceIndex = occurenceIndex;
-//                String subst = labeledExpression.substring(oldOccurenceIndex + 1);
-//                occurenceIndex = subst.indexOf(l + "]") + oldOccurenceIndex + 1;
-//                if (oldOccurenceIndex == occurenceIndex) return null;
-//            }
-//            c -= 1;
-//        } while (c > 0);
-//        StringBuilder pattern = new StringBuilder();
-//        String args = labeledExpression.substring(occurenceIndex + (l + "]").length(), labeledExpression.indexOf("[" + l, occurenceIndex));
-//        char[] chars = labeledExpression.toCharArray();
-//        int beginExpressionIndex = 0;
-//        for (int i = occurenceIndex; i >= 0; i--) {
-//            if (chars[i] == ']' || chars[i] == ',') {
-//                beginExpressionIndex = i;
-//                break;
-//            }
-//        }
-//        String expressionName = "";
-//        if (beginExpressionIndex != 0)
-//            expressionName = labeledExpression.substring(beginExpressionIndex + 1, occurenceIndex - 1);
-//        else
-//            expressionName = labeledExpression.substring(0, occurenceIndex - 1);
-//
-//        System.out.println("Xdddd");
-
-        // tworzy nowy obiekt WorkflowPattern (na podstawie WorkflowPatternTemplate i argumentów w patternExpression)
-//        String finalExpressionName = expressionName;
-//        WorkflowPatternTemplate workflowPatternTemplate = patternPropertySet.stream().filter(x -> x.getName().equals(finalExpressionName.trim())).findFirst().orElseThrow();
-//        List<String> patternArguments = WorkflowPattern.extractArgumentsFromLabelledExpression(labeledExpression, patternPropertySet);
-//        return new WorkflowPattern(workflowPatternTemplate, patternArguments);
-
-
-//        PredefinedSetEntry result = patternPropertySet.findByIdentifier(expressionName.trim());
-//        if (result != null) {
-//            List<String> arguments = extractArgumentsFromFunction(args);
-//            result.PassArguments(arguments);
-//        }
-//        return result;
-//        return null;
     }
-
-
 }

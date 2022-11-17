@@ -4,8 +4,8 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         // Loading of Pattern property set from batch files
-        String patternRulesFolFile = "./pattern_rules/pattern_rules_FOL.json";
-        String patternRulesLtlFile = "./pattern_rules/pattern_rules_LTL.json";
+        String patternRulesFolFile = "./pattern_rules/pattern_rules_FOL.json"; // First Order Logic
+        String patternRulesLtlFile = "./pattern_rules/pattern_rules_LTL.json"; // Linear Temporal Logic
         List<WorkflowPatternTemplate> folPatternPropertySet = WorkflowPatternTemplate.loadPatternPropertySet(patternRulesFolFile);
         List<WorkflowPatternTemplate> ltlPatternPropertySet = WorkflowPatternTemplate.loadPatternPropertySet(patternRulesLtlFile);
 
@@ -25,7 +25,6 @@ public class Main {
 
         // Algorithm 3 - Generating logical specifications
         String s = GeneratingLogicalSpecifications.generateLogicalSpecifications(exampleExpression1.replace(" ", ""), folPatternPropertySet);
-        System.out.println("Xd");
         System.out.println(s);
     }
 }

@@ -18,7 +18,7 @@ public class CalculatingConsolidatedExpression {
 
         String ex = "";
         WorkflowPattern workflowPattern = WorkflowPattern.getWorkflowPatternFromExpression(patternExpression, patternPropertySet);
-        List<String> rulesWithAtomicActivities = workflowPattern.getPatternArguments();
+        List<String> rulesWithAtomicActivities = workflowPattern.getWorkflowPatternFilledRules();
         String ini = rulesWithAtomicActivities.get(0);
         String fin = rulesWithAtomicActivities.get(1);
         rulesWithAtomicActivities.remove(0);
@@ -34,7 +34,7 @@ public class CalculatingConsolidatedExpression {
 
         List<String> expressionArguments = WorkflowPattern.extractArgumentsFromLabelledExpression(patternExpression, patternPropertySet);
         for (String argument : expressionArguments) {
-            if (!WorkflowPattern.isAtomic(argument)) {
+            if (WorkflowPattern.isNotAtomic(argument)) {
                 String innerConsolidatedExpression = generateConsolidatedExpression(argument, type, patternPropertySet);
                 ex = ex.replace(argument, innerConsolidatedExpression);
             }
