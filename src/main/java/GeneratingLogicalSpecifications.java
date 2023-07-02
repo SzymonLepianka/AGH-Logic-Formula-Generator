@@ -10,7 +10,9 @@ public class GeneratingLogicalSpecifications {
     //          - predefined pattern property set Σ (non-empty)
     // Output: logical specification L
     //
-    public static String generateLogicalSpecifications(String patternExpression, List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
+    public static String generateLogicalSpecifications(String patternExpression,
+                                                       List<WorkflowPatternTemplate> patternPropertySet)
+            throws Exception {
         List<String> logicalSpecification = new ArrayList<>();
         String labelledExpression = LabellingPatternExpressions.labelExpressions(patternExpression);
         int highestLabelNumber = getHighestLabel(labelledExpression);
@@ -23,7 +25,10 @@ public class GeneratingLogicalSpecifications {
                 L2.remove(0);
                 for (String arg : pat.getPatternArguments()) {
                     if (WorkflowPattern.isNotAtomic(arg)) {
-                        String cons = CalculatingConsolidatedExpression.generateConsolidatedExpression(arg, "ini", patternPropertySet) + " | " + CalculatingConsolidatedExpression.generateConsolidatedExpression(arg, "fin", patternPropertySet);
+                        String cons = CalculatingConsolidatedExpression.generateConsolidatedExpression(arg, "ini",
+                                patternPropertySet) + " | " +
+                                CalculatingConsolidatedExpression.generateConsolidatedExpression(arg, "fin",
+                                        patternPropertySet);
 
                         List<String> L2_cons = new LinkedList<>();
                         for (String outcome : L2) {
@@ -81,7 +86,8 @@ public class GeneratingLogicalSpecifications {
     //
     // Na przykład dla Formuły "Seq(1]a, Seq(2]Concur(3]b,c,d[3), ConcurRe(3]e,f,g[3)[2)[1)" funkcja zwróci:
     //      Concur Re(e,f,g).
-    private static WorkflowPattern getPat(String labelledExpression, int l, int c, List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
+    private static WorkflowPattern getPat(String labelledExpression, int l, int c,
+                                          List<WorkflowPatternTemplate> patternPropertySet) throws Exception {
 
         // sprawdzenie poprawności wyrażenia
         int entryOccurrences = StringUtils.countMatches(labelledExpression, "(" + l + "]");
